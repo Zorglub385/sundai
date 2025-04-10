@@ -2,62 +2,25 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Texte en MP3 via StreamElements TTS</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      text-align: center;
-    }
-    textarea {
-      width: 100%;
-      height: 150px;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-  </style>
+  <title>Synthèse vocale avec SpeechSynthesis</title>
 </head>
 <body>
-  <h1>Convertir texte en MP3</h1>
+  <h1>Convertir texte en parole</h1>
   <textarea id="textInput" placeholder="Écris ton texte ici..."></textarea>
   <br>
-  <button onclick="convertToMP3()">Télécharger MP3</button>
+  <button onclick="speakText()">Lire le texte</button>
+
   <script>
-    async function convertToMP3() {
+    function speakText() {
       const text = document.getElementById("textInput").value.trim();
       if (!text) {
         alert("Merci d'écrire un texte.");
         return;
       }
-      
-      // Choix d'une voix supposée française (à ajuster si besoin)
-      const voice = "Audrey";
-      const encodedText = encodeURIComponent(text);
-      const apiUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodedText}`;
-      
-      try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error(`Erreur HTTP : ${response.status}`);
-        }
-        const blob = await response.blob();
-        // On télécharge le fichier mp3 généré
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = "voix.mp3";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(blobUrl);
-      } catch (error) {
-        alert("Erreur : " + error.message);
-      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'fr-FR'; // Langue française
+      speechSynthesis.speak(utterance);
     }
   </script>
 </body>
