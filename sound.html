@@ -2,26 +2,82 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Synthèse vocale avec SpeechSynthesis</title>
+  <title>Convertisseur Texte en Parole avec Téléchargement</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #textInput {
+      width: 100%;
+      height: 100px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Convertir texte en parole</h1>
-  <textarea id="textInput" placeholder="Écris ton texte ici..."></textarea>
-  <br>
-  <button onclick="speakText()">Lire le texte</button>
+
+  <h1>Convertir le texte en parole et télécharger</h1>
+  <textarea id="textInput" placeholder="Écris ton texte ici..."></textarea><br>
+  <button onclick="speakAndRecord()">Lire et Enregistrer</button>
 
   <script>
-    function speakText() {
+    // Vérifie si les API SpeechSynthesis et MediaRecorder sont supportées
+    if (!('speechSynthesis' in window) || !('MediaRecorder' in window)) {
+      alert("Désolé, votre navigateur ne supporte pas ces fonctionnalités.");
+    }
+
+    // Fonction pour lire le texte et enregistrer l'audio
+    function speakAndRecord() {
       const text = document.getElementById("textInput").value.trim();
       if (!text) {
         alert("Merci d'écrire un texte.");
         return;
       }
 
+      // Crée une instance de SpeechSynthesisUtterance
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'fr-FR'; // Langue française
+      utterance.lang = 'fr-FR';
+
+      // Crée un tableau pour stocker les segments audio
+      const audioChunks = [];
+
+      // Initialise le MediaRecorder
+      const stream = new MediaStream();
+      const mediaRecorder = new MediaRecorder(stream);
+
+      // Lorsque des données audio sont disponibles, les ajouter au tableau
+      mediaRecorder.ondataavailable = event => {
+        audioChunks.push(event.data);
+      };
+
+      // Lorsque l'enregistrement est arrêté, créer un Blob et un lien de téléchargement
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const link = document.createElement('a');
+        link.href = audioUrl;
+        link.download = 'synthese_vocale.wav'; // Nom du fichier audio
+        link.click(); // Simule un clic pour télécharger
+      };
+
+      // Démarre l'enregistrement
+      mediaRecorder.start();
+
+      // Lit le texte à haute voix
       speechSynthesis.speak(utterance);
+
+      // Lorsque la lecture est terminée, arrête l'enregistrement
+      utterance.onend = () => {
+        mediaRecorder.stop();
+      };
     }
   </script>
+
 </body>
 </html>
