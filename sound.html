@@ -2,91 +2,72 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Texte vers Voix (local)</title>
+  <title>Texte vers MP3</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       max-width: 600px;
-      margin: 40px auto;
+      margin: 2em auto;
+      text-align: center;
     }
     textarea {
       width: 100%;
       height: 150px;
+      margin-bottom: 1em;
     }
     button {
-      margin-top: 10px;
       padding: 10px 20px;
       font-size: 1rem;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>Texte vers Voix</h1>
-  <textarea id="text" placeholder="Écris ton texte ici..."></textarea><br>
-  <button onclick="speakAndRecord()">Lire et télécharger</button>
+  <h1>Convertir texte en MP3</h1>
+  <textarea id="textInput" placeholder="Écris ton texte ici..."></textarea><br>
+  <button onclick="convertToMP3()">Télécharger en MP3</button>
 
   <script>
-    async function speakAndRecord() {
-      const text = document.getElementById("text").value;
-      if (!text) return alert("Tu dois écrire un texte !");
+    async function convertToMP3() {
+      const text = document.getElementById("textInput").value.trim();
+      if (!text) {
+        alert("Merci de saisir un texte !");
+        return;
+      }
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'fr-FR'; // Langue française
-
-      const audioContext = new AudioContext();
-      const destination = audioContext.createMediaStreamDestination();
-      const mediaRecorder = new MediaRecorder(destination.stream);
-      const chunks = [];
-
-      mediaRecorder.ondataavailable = e => chunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'voix.webm';
-        a.click();
+      const payload = {
+        text: text,
+        voice: "Lea", // Voix française (féminine)
+        lang: "fr-FR",
+        format: "mp3",
+        speed: 1,
+        emotion: "normal"
       };
 
-      const synth = window.speechSynthesis;
-      const source = audioContext.createMediaStreamSource(destination.stream);
+      try {
+        const response = await fetch("https://api.ttsmaker.com/v1/create-tts-audio", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
 
-      const originalSpeak = speechSynthesis.speak;
-      const synthNode = audioContext.createMediaStreamSource(destination.stream);
+        const data = await response.json();
 
-      speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = "fr-FR";
-
-      const synthVoice = synth.getVoices().find(v => v.lang.startsWith("fr"));
-      if (synthVoice) utter.voice = synthVoice;
-
-      const dummy = new SpeechSynthesisUtterance(" ");
-      synth.speak(dummy); // Trigger voix chargées
-
-      await new Promise(r => setTimeout(r, 100)); // Petite pause
-
-      const audioDest = audioContext.createMediaStreamDestination();
-      const recorder = new MediaRecorder(audioDest.stream);
-      const audioChunks = [];
-
-      recorder.ondataavailable = event => audioChunks.push(event.data);
-      recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const audioURL = URL.createObjectURL(audioBlob);
-        const a = document.createElement('a');
-        a.href = audioURL;
-        a.download = 'voix.webm';
-        a.click();
-      };
-
-      const synthStream = audioContext.createMediaStreamDestination();
-      const speaker = audioContext.createMediaStreamSource(synthStream.stream);
-
-      // Branche la synthèse sur le recorder
-      recorder.start();
-      synth.speak(utter);
-      utter.onend = () => recorder.stop();
+        if (data && data.audioUrl) {
+          const a = document.createElement("a");
+          a.href = data.audioUrl;
+          a.download = "voix.mp3";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } else {
+          alert("Erreur lors de la génération du fichier audio.");
+        }
+      } catch (err) {
+        alert("Erreur de connexion à l'API : " + err.message);
+      }
     }
   </script>
 </body>
