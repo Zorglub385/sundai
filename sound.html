@@ -2,64 +2,91 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Texte vers MP3</title>
+  <title>Texte vers Voix (local)</title>
   <style>
     body {
-      font-family: sans-serif;
-      max-width: 500px;
-      margin: 2em auto;
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
     }
     textarea {
       width: 100%;
       height: 150px;
     }
     button {
-      margin-top: 1em;
+      margin-top: 10px;
       padding: 10px 20px;
-      font-size: 1em;
-      cursor: pointer;
+      font-size: 1rem;
     }
   </style>
 </head>
 <body>
-  <h1>Texte vers MP3</h1>
-  <textarea id="textInput" placeholder="Écris ton texte ici..."></textarea>
-  <button onclick="downloadMP3()">Télécharger en MP3</button>
+  <h1>Texte vers Voix</h1>
+  <textarea id="text" placeholder="Écris ton texte ici..."></textarea><br>
+  <button onclick="speakAndRecord()">Lire et télécharger</button>
 
   <script>
-    async function downloadMP3() {
-      const text = document.getElementById("textInput").value;
-      if (!text) {
-        alert("Le champ est vide !");
-        return;
-      }
+    async function speakAndRecord() {
+      const text = document.getElementById("text").value;
+      if (!text) return alert("Tu dois écrire un texte !");
 
-      const encodedText = encodeURIComponent(text);
-      const voice = "Lea"; // voix française de l'API ttsmp3.com
-      const url = `https://api.ttsmaker.com/v1/tts?text=${encodedText}&voice=${voice}&format=mp3`;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'fr-FR'; // Langue française
 
-      try {
-        const response = await fetch(url, {
-          method: "GET"
-        });
+      const audioContext = new AudioContext();
+      const destination = audioContext.createMediaStreamDestination();
+      const mediaRecorder = new MediaRecorder(destination.stream);
+      const chunks = [];
 
-        if (!response.ok) {
-          throw new Error("Erreur avec l'API de texte à voix");
-        }
-
-        const blob = await response.blob();
-        const urlBlob = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = urlBlob;
-        a.download = "voix.mp3";
-        document.body.appendChild(a);
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'voix.webm';
         a.click();
-        a.remove();
-        URL.revokeObjectURL(urlBlob);
-      } catch (e) {
-        alert("Erreur : " + e.message);
-      }
+      };
+
+      const synth = window.speechSynthesis;
+      const source = audioContext.createMediaStreamSource(destination.stream);
+
+      const originalSpeak = speechSynthesis.speak;
+      const synthNode = audioContext.createMediaStreamSource(destination.stream);
+
+      speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "fr-FR";
+
+      const synthVoice = synth.getVoices().find(v => v.lang.startsWith("fr"));
+      if (synthVoice) utter.voice = synthVoice;
+
+      const dummy = new SpeechSynthesisUtterance(" ");
+      synth.speak(dummy); // Trigger voix chargées
+
+      await new Promise(r => setTimeout(r, 100)); // Petite pause
+
+      const audioDest = audioContext.createMediaStreamDestination();
+      const recorder = new MediaRecorder(audioDest.stream);
+      const audioChunks = [];
+
+      recorder.ondataavailable = event => audioChunks.push(event.data);
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioURL = URL.createObjectURL(audioBlob);
+        const a = document.createElement('a');
+        a.href = audioURL;
+        a.download = 'voix.webm';
+        a.click();
+      };
+
+      const synthStream = audioContext.createMediaStreamDestination();
+      const speaker = audioContext.createMediaStreamSource(synthStream.stream);
+
+      // Branche la synthèse sur le recorder
+      recorder.start();
+      synth.speak(utter);
+      utter.onend = () => recorder.stop();
     }
   </script>
 </body>
