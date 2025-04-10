@@ -2,71 +2,61 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Texte vers MP3</title>
+  <title>Texte en MP3 via StreamElements TTS</title>
   <style>
     body {
       font-family: sans-serif;
       max-width: 600px;
-      margin: 2em auto;
+      margin: 40px auto;
       text-align: center;
     }
     textarea {
       width: 100%;
       height: 150px;
-      margin-bottom: 1em;
     }
     button {
+      margin-top: 20px;
       padding: 10px 20px;
-      font-size: 1rem;
+      font-size: 16px;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
   <h1>Convertir texte en MP3</h1>
-  <textarea id="textInput" placeholder="Écris ton texte ici..."></textarea><br>
-  <button onclick="convertToMP3()">Télécharger en MP3</button>
-
+  <textarea id="textInput" placeholder="Écris ton texte ici..."></textarea>
+  <br>
+  <button onclick="convertToMP3()">Télécharger MP3</button>
   <script>
     async function convertToMP3() {
       const text = document.getElementById("textInput").value.trim();
       if (!text) {
-        alert("Merci de saisir un texte !");
+        alert("Merci d'écrire un texte.");
         return;
       }
-
-      const payload = {
-        text: text,
-        voice: "Lea", // Voix française (féminine)
-        lang: "fr-FR",
-        format: "mp3",
-        speed: 1,
-        emotion: "normal"
-      };
-
+      
+      // Choix d'une voix supposée française (à ajuster si besoin)
+      const voice = "Audrey";
+      const encodedText = encodeURIComponent(text);
+      const apiUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodedText}`;
+      
       try {
-        const response = await fetch("https://api.ttsmaker.com/v1/create-tts-audio", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (data && data.audioUrl) {
-          const a = document.createElement("a");
-          a.href = data.audioUrl;
-          a.download = "voix.mp3";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        } else {
-          alert("Erreur lors de la génération du fichier audio.");
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP : ${response.status}`);
         }
-      } catch (err) {
-        alert("Erreur de connexion à l'API : " + err.message);
+        const blob = await response.blob();
+        // On télécharge le fichier mp3 généré
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = "voix.mp3";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        alert("Erreur : " + error.message);
       }
     }
   </script>
