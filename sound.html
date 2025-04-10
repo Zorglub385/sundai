@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Texte vers MP3</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 500px;
+      margin: 2em auto;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+    }
+    button {
+      margin-top: 1em;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Texte vers MP3</h1>
+  <textarea id="textInput" placeholder="Écris ton texte ici..."></textarea>
+  <button onclick="downloadMP3()">Télécharger en MP3</button>
+
+  <script>
+    async function downloadMP3() {
+      const text = document.getElementById("textInput").value;
+      if (!text) {
+        alert("Le champ est vide !");
+        return;
+      }
+
+      const encodedText = encodeURIComponent(text);
+      const voice = "Lea"; // voix française de l'API ttsmp3.com
+      const url = `https://api.ttsmaker.com/v1/tts?text=${encodedText}&voice=${voice}&format=mp3`;
+
+      try {
+        const response = await fetch(url, {
+          method: "GET"
+        });
+
+        if (!response.ok) {
+          throw new Error("Erreur avec l'API de texte à voix");
+        }
+
+        const blob = await response.blob();
+        const urlBlob = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = urlBlob;
+        a.download = "voix.mp3";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(urlBlob);
+      } catch (e) {
+        alert("Erreur : " + e.message);
+      }
+    }
+  </script>
+</body>
+</html>
