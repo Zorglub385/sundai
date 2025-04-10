@@ -1,0 +1,30 @@
+name: Déploiement sur GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # Changez si votre branche principale a un autre nom
+
+permissions:
+  contents: write  # Nécessaire pour pousser vers gh-pages
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Récupération du code
+      uses: actions/checkout@v4
+
+    - name: Construction du site (facultatif)
+      run: |
+        echo "Ajoutez ici vos étapes de build si besoin"
+        # Par exemple : npm install && npm run build
+        # Ou rien si vous poussez du HTML/CSS/JS directement
+
+    - name: Déploiement vers GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+
